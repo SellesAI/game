@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тренер для мозоку</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow: hidden; /* Запобігання прокрутці */
+            touch-action: none;
+        }
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background-color: #fff;
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            position: relative;
+        }
+        h1 {
+            color: #4a5568;
+            font-size: 2rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        .tab-container {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            background-color: #e2e8f0;
+            border-radius: 12px;
+            padding: 4px;
+        }
+        .tab-button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background-color: transparent;
+            font-size: 1rem;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            color: #718096;
+        }
+        .tab-button.active {
+            background-color: #4c4dff;
+            color: #fff;
+            box-shadow: 0 2px 10px rgba(76, 77, 255, 0.4);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .game-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        .crossword-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 4px;
+            margin-bottom: 20px;
+        }
+        .grid-cell {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4a5568;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+        .word-slot {
+            background-color: #e2e8f0;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .word-slot.active {
+            background-color: #cbd5e0;
+            border: 2px solid #4c4dff;
+        }
+        .letter-tray-container {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            margin: 20px auto;
+        }
+        #letter-tray-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 10;
+        }
+        .letter-tray {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 20;
+        }
+        .letter {
+            width: 45px;
+            height: 45px;
+            background-color: #4c4dff;
+            color: #fff;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            box-shadow: 0 4px 15px rgba(76, 77, 255, 0.3);
+            user-select: none;
+            position: absolute;
+        }
+        .letter:hover {
+            transform: scale(1.1);
+        }
+        .letter.active {
+            transform: scale(1.1);
+            background-color: #3b3be6;
+        }
+        .message-box {
+            background-color: #f7fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            width: 100%;
+        }
+        .message-box h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #4a5568;
+        }
+        .message-box p {
+            color: #718096;
+            line-height: 1.5;
+        }
+        .user-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #4a5568;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        .purchase-container {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .purchase-button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            background-color: #4c4dff;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            box-shadow: 0 4px 15px rgba(76, 77, 255, 0.3);
+        }
+        .purchase-button:hover {
+            background-color: #3b3be6;
+        }
+        .battle-ui {
+            text-align: center;
+        }
+        .battle-button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            background-color: #2b6cb0;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            box-shadow: 0 4px 15px rgba(43, 108, 176, 0.3);
+        }
+        .battle-button:hover {
+            background-color: #21548a;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Тренер для мозоку</h1>
+        <div class="user-status">
+            <span id="units-count">Юніти: ...</span>
+            <span id="games-left">Ігор: ...</span>
+        </div>
+        <div class="tab-container">
+            <button class="tab-button active" onclick="showTab('game')">Гра</button>
+            <button class="tab-button" onclick="showTab('battle')">Битва</button>
+            <button class="tab-button" onclick="showTab('friends')">Друзі</button>
+        </div>
+
+        <!-- Ігрова вкладка -->
+        <div id="game" class="tab-content active">
+            <div class="game-section">
+                <h2>Складіть слова</h2>
+                <div class="crossword-grid" id="crossword-grid"></div>
+                <div class="letter-tray-container" id="letter-tray-container">
+                    <canvas id="letter-tray-canvas"></canvas>
+                    <div class="letter-tray" id="letter-tray"></div>
+                </div>
+                <div id="game-info" class="purchase-container" style="display: none;">
+                    <p>Щодня доступно 3 безкоштовні ігри. Щоб грати без обмежень, придбайте преміум-підписку.</p>
+                    <button class="purchase-button" onclick="buyPremium()">Купити Преміум (150 грн)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладка битви -->
+        <div id="battle" class="tab-content">
+            <div class="game-section">
+                <h2>Знайдіть суперника</h2>
+                <p>Змагайтесь з випадковим гравцем на 5 юнітів.</p>
+                <button class="battle-button" onclick="findRandomOpponent()">Знайти суперника</button>
+            </div>
+        </div>
+
+        <!-- Вкладка друзів -->
+        <div id="friends" class="tab-content">
+            <div class="game-section">
+                <h2>Грайте з друзями</h2>
+                <p>Запросіть друга, щоб зіграти батл на юніти.</p>
+                <button class="battle-button" onclick="inviteFriend()">Запросити друга</button>
+            </div>
+        </div>
+
+        <div class="message-box">
+            <h2 id="status-title">Статус</h2>
+            <p id="status-message">Завантаження...</p>
+        </div>
+    </div>
+
+    <div id="purchase-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal('purchase-modal')">&times;</span>
+            <h3>Віртуальні покупки</h3>
+            <p>Ці покупки є віртуальними для демонстрації. В реальному додатку вони будуть оброблятися через платіжну систему Telegram.</p>
+            <div class="purchase-container">
+                <button class="purchase-button" onclick="buyUnits(18, 40)">Купити 18 юнітів (40 грн)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="battle-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal('battle-modal')">&times;</span>
+            <h3 id="battle-modal-title">Початок битви</h3>
+            <p id="battle-modal-message">Готуємося до битви...</p>
+        </div>
+    </div>
+
+    <script>
+        const TG = window.Telegram.WebApp;
+        TG.expand();
+
+        const BACKEND_URL = "http://188.190.73.215:8000";
+
+        let letterTrayContainer, letterTray, canvas, ctx;
+        let currentCrossword;
+        let guessedWords = new Set();
+        let lettersForCrossword = [];
+        let letterElements = [];
+        let letterPositions = [];
+        let currentWord = [];
+        let usedLetters = [];
+        let drawing = false;
+        let lastLetterIndex = -1;
+
+        // Ініціалізація користувача
+        async function fetchUserState(userId) {
+            try {
+                const response = await fetch(`${BACKEND_URL}/user/${userId}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const userState = await response.json();
+                updateUI(userState);
+                return userState;
+            } catch (error) {
+                console.error("Помилка підключення до бекенду:", error);
+                updateStatus("Помилка підключення до бекенду.", "error");
+                return null;
+            }
+        }
+        
+        const crosswordData = [
+            {
+                layout: [
+                    ['М', '', '', 'К', '', ''],
+                    ['А', '', 'Д', 'І', '', ''],
+                    ['С', 'В', 'І', 'Т', '', ''],
+                    ['А', '', 'М', '', '', ''],
+                    ['', '', '', '', '', ''],
+                    ['', '', '', '', '', '']
+                ],
+                words: {
+                    'horizontal': {
+                        'СВІТ': [{r: 2, c: 0}, {r: 2, c: 1}, {r: 2, c: 2}, {r: 2, c: 3}]
+                    },
+                    'vertical': {
+                        'МАСА': [{r: 0, c: 0}, {r: 1, c: 0}, {r: 2, c: 0}, {r: 3, c: 0}],
+                        'ДІМ': [{r: 1, c: 2}, {r: 2, c: 2}, {r: 3, c: 2}],
+                        'КІТ': [{r: 0, c: 3}, {r: 1, c: 3}, {r: 2, c: 3}]
+                    }
+                }
+            },
+            {
+                layout: [
+                    ['С', 'О', 'Н', '', '', ''],
+                    ['', '', 'І', '', '', ''],
+                    ['', '', 'Г', 'О', 'Р', 'А'],
+                    ['', '', '', '', '', ''],
+                    ['', '', '', 'Т', '', ''],
+                    ['', '', '', '', '', '']
+                ],
+                words: {
+                    'horizontal': {
+                        'СОН': [{r: 0, c: 0}, {r: 0, c: 1}, {r: 0, c: 2}],
+                        'ГОРА': [{r: 2, c: 2}, {r: 2, c: 3}, {r: 2, c: 4}, {r: 2, c: 5}]
+                    },
+                    'vertical': {
+                        'СІГ': [{r: 0, c: 2}, {r: 1, c: 2}, {r: 2, c: 2}]
+                    }
+                }
+            },
+            {
+                 layout: [
+                    ['', '', '', '', '', ''],
+                    ['', 'Р', 'И', 'Б', 'А', ''],
+                    ['', '', '', '', '', ''],
+                    ['', 'О', '', '', '', ''],
+                    ['', 'Т', '', '', '', ''],
+                    ['', '', '', '', '', '']
+                ],
+                words: {
+                    'horizontal': {
+                        'РИБА': [{r: 1, c: 1}, {r: 1, c: 2}, {r: 1, c: 3}, {r: 1, c: 4}]
+                    },
+                    'vertical': {
+                        'РОТ': [{r: 1, c: 1}, {r: 2, c: 1}, {r: 3, c: 1}]
+                    }
+                }
+            },
+            {
+                layout: [
+                    ['К','О','Т','И','',''],
+                    ['','','','','',''],
+                    ['С','О','Н','','',''],
+                    ['','','','','',''],
+                    ['Б','А','Т','Ь','К','О']
+                ],
+                words: {
+                    'horizontal': {
+                        'КОТИ': [{r: 0, c: 0}, {r: 0, c: 1}, {r: 0, c: 2}, {r: 0, c: 3}],
+                        'СОН': [{r: 2, c: 0}, {r: 2, c: 1}, {r: 2, c: 2}],
+                        'БАТЬКО': [{r: 4, c: 0}, {r: 4, c: 1}, {r: 4, c: 2}, {r: 4, c: 3}, {r: 4, c: 4}, {r: 4, c: 5}]
+                    },
+                    'vertical': {
+                        'КОБ': [{r: 0, c: 0}, {r: 1, c: 0}, {r: 2, c: 0}],
+                        'ОТ': [{r: 0, c: 1}, {r: 1, c: 1}],
+                        'СО': [{r: 2, c: 1}, {r: 3, c: 1}],
+                        'ТИ': [{r: 0, c: 3}, {r: 1, c: 3}],
+                        'ІТ': [{r: 0, c: 3}, {r: 1, c: 3}],
+                        'КОТИ': [{r: 0, c: 0}, {r: 0, c: 1}, {r: 0, c: 2}, {r: 0, c: 3}]
+                    }
+                }
+            },
+            {
+                layout: [
+                    ['П', '', '', '', '', ''],
+                    ['Р', '', 'К', '', '', ''],
+                    ['И', 'В', 'І', 'Т', '', ''],
+                    ['В', '', 'Н', '', '', ''],
+                    ['І', '', 'А', '', '', ''],
+                    ['Т', '', '', '', '', '']
+                ],
+                words: {
+                    'horizontal': {
+                        'ПРИВІТ': [{r: 0, c: 0}, {r: 1, c: 0}, {r: 2, c: 0}, {r: 3, c: 0}, {r: 4, c: 0}, {r: 5, c: 0}],
+                        'ВІТ': [{r: 2, c: 1}, {r: 2, c: 2}, {r: 2, c: 3}]
+                    },
+                    'vertical': {
+                        'КІН': [{r: 1, c: 2}, {r: 2, c: 2}, {r: 3, c: 2}, {r: 4, c: 2}],
+                        'ВІТА': [{r: 3, c: 0}, {r: 4, c: 0}, {r: 5, c: 0}]
+                    }
+                }
+            },
+            {
+                layout: [
+                    ['О','К','Е','А','Н',''],
+                    ['','','','','',''],
+                    ['','','','Р','А','К'],
+                    ['','','','','',''],
+                    ['К','А','В','А','','']
+                ],
+                words: {
+                    'horizontal': {
+                        'ОКЕАН': [{r: 0, c: 0}, {r: 0, c: 1}, {r: 0, c: 2}, {r: 0, c: 3}, {r: 0, c: 4}],
+                        'РАК': [{r: 2, c: 3}, {r: 2, c: 4}, {r: 2, c: 5}],
+                        'КАВА': [{r: 4, c: 0}, {r: 4, c: 1}, {r: 4, c: 2}, {r: 4, c: 3}]
+                    },
+                    'vertical': {
+                        'ОК': [{r: 0, c: 0}, {r: 1, c: 0}],
+                        'КВА': [{r: 4, c: 1}, {r: 4, c: 2}, {r: 4, c: 3}],
+                        'КЕК': [{r: 0, c: 2}, {r: 1, c: 2}]
+                    }
+                }
+            }
+        ];
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function fetchRandomCrossword() {
+            const randomIndex = Math.floor(Math.random() * crosswordData.length);
+            return crosswordData[randomIndex];
+        }
+
+        async function showTab(tabId) {
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+
+            const buttons = document.querySelectorAll('.tab-button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.tab-button[onclick="showTab('${tabId}')"]`).classList.add('active');
+            
+            // Якщо переходимо на вкладку гри, перевіряємо стан
+            if (tabId === 'game') {
+                await fetchAndGenerateGame();
+            }
+        }
+        
+        async function fetchAndGenerateGame() {
+            const userId = (TG.initDataUnsafe.user && TG.initDataUnsafe.user.id) ? TG.initDataUnsafe.user.id : 12345;
+            try {
+                const response = await fetch(`${BACKEND_URL}/game/start/${userId}`, { method: 'POST' });
+                if (response.status === 403) {
+                    const data = await response.json();
+                    updateStatus(data.detail, 'error');
+                    document.getElementById('game-info').style.display = 'flex';
+                    return;
+                }
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                generateCrossword();
+                updateStatus('Ласкаво просимо! З\'єднайте літери.', 'info');
+                document.getElementById('game-info').style.display = 'none';
+            } catch (error) {
+                console.error("Помилка підключення до бекенду:", error);
+                updateStatus("Помилка підключення до бекенду.", "error");
+            }
+        }
+
+        function generateCrossword() {
+            currentCrossword = fetchRandomCrossword();
+
+            const crosswordGrid = document.getElementById('crossword-grid');
+            crosswordGrid.innerHTML = '';
+            
+            currentCrossword.layout.forEach((row, rowIndex) => {
+                row.forEach((cell, colIndex) => {
+                    const gridCell = document.createElement('div');
+                    gridCell.classList.add('grid-cell');
+                    const isWordSlot = Object.values(currentCrossword.words.horizontal).flat().some(pos => pos.r === rowIndex && pos.c === colIndex) ||
+                                       Object.values(currentCrossword.words.vertical).flat().some(pos => pos.r === rowIndex && pos.c === colIndex);
+
+                    if (isWordSlot) {
+                        gridCell.classList.add('word-slot');
+                        gridCell.dataset.row = rowIndex;
+                        gridCell.dataset.col = colIndex;
+                        if (cell) {
+                             gridCell.textContent = cell;
+                        }
+                    }
+                    crosswordGrid.appendChild(gridCell);
+                });
+            });
+
+            guessedWords = new Set();
+            generateLetters();
+            generateLetterTray();
+        }
+
+        // Функція для отримання унікальних літер
+        function getUniqueLetters(words) {
+            const allLetters = {};
+            for (const word of words) {
+                const letters = {};
+                for (const char of word) {
+                    letters[char] = (letters[char] || 0) + 1;
+                }
+                for (const char in letters) {
+                    if (!allLetters[char] || allLetters[char] < letters[char]) {
+                        allLetters[char] = letters[char];
+                    }
+                }
+            }
+            const result = [];
+            for (const char in allLetters) {
+                for (let i = 0; i < allLetters[char]; i++) {
+                    result.push(char);
+                }
+            }
+            return result;
+        }
+
+        // Функція для генерації літер на основі слів кросворду
+        function generateLetters() {
+            const allWords = [
+                ...Object.keys(currentCrossword.words.horizontal),
+                ...Object.keys(currentCrossword.words.vertical)
+            ];
+            lettersForCrossword = getUniqueLetters(allWords);
+        }
+
+        function generateLetterTray() {
+            letterTray.innerHTML = '';
+            letterElements = [];
+            letterPositions = [];
+            
+            const centerX = letterTrayContainer.offsetWidth / 2;
+            const centerY = letterTrayContainer.offsetHeight / 2;
+            const radius = 100;
+            const angleStep = (Math.PI * 2) / lettersForCrossword.length;
+
+            shuffleArray(lettersForCrossword).forEach((l, index) => {
+                const angle = index * angleStep;
+                const x = centerX + radius * Math.cos(angle);
+                const y = centerY + radius * Math.sin(angle);
+                
+                const letterEl = document.createElement('div');
+                letterEl.classList.add('letter');
+                letterEl.textContent = l;
+                letterEl.dataset.letter = l;
+                letterEl.dataset.index = index;
+                letterEl.style.left = `${x - 22.5}px`;
+                letterEl.style.top = `${y - 22.5}px`;
+                
+                letterElements.push(letterEl);
+                letterPositions.push({ x: x, y: y, letter: l });
+                letterTray.appendChild(letterEl);
+            });
+            
+            letterTray.addEventListener('mousedown', startDrawing);
+            letterTray.addEventListener('mousemove', draw);
+            letterTray.addEventListener('mouseup', stopDrawing);
+            letterTray.addEventListener('mouseleave', stopDrawing);
+
+            letterTray.addEventListener('touchstart', startDrawing);
+            letterTray.addEventListener('touchmove', draw);
+            letterTray.addEventListener('touchend', stopDrawing);
+        }
+        
+        function getEventPos(e) {
+            const rect = letterTrayContainer.getBoundingClientRect();
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function getLetterAtPosition(pos) {
+            for (let i = 0; i < letterPositions.length; i++) {
+                const letterPos = letterPositions[i];
+                const distance = Math.sqrt(Math.pow(pos.x - letterPos.x, 2) + Math.pow(pos.y - letterPos.y, 2));
+                if (distance < 25) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        function startDrawing(e) {
+            e.preventDefault();
+            const pos = getEventPos(e);
+            const index = getLetterAtPosition(pos);
+            if (index !== -1 && !usedLetters.includes(index)) {
+                drawing = true;
+                currentWord = [lettersForCrossword[index]];
+                usedLetters = [index];
+                lastLetterIndex = index;
+                letterElements[index].classList.add('active');
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.beginPath();
+                ctx.moveTo(letterPositions[index].x, letterPositions[index].y);
+            }
+        }
+        
+        function draw(e) {
+            if (!drawing) return;
+            e.preventDefault();
+            const pos = getEventPos(e);
+            
+            // Draw a line
+            ctx.lineTo(pos.x, pos.y);
+            ctx.strokeStyle = '#4c4dff';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            
+            // Check if a new letter has been crossed
+            const index = getLetterAtPosition(pos);
+            if (index !== -1 && !usedLetters.includes(index)) {
+                
+                const lastLetterPos = letterPositions[lastLetterIndex];
+                const newLetterPos = letterPositions[index];
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Redraw all previous lines to make them straight
+                if (usedLetters.length > 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(letterPositions[usedLetters[0]].x, letterPositions[usedLetters[0]].y);
+                    for (let i = 1; i < usedLetters.length; i++) {
+                        ctx.lineTo(letterPositions[usedLetters[i]].x, letterPositions[usedLetters[i]].y);
+                    }
+                    ctx.lineTo(newLetterPos.x, newLetterPos.y); // Add the new point
+                    ctx.strokeStyle = '#4c4dff';
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+                }
+
+                currentWord.push(lettersForCrossword[index]);
+                usedLetters.push(index);
+                lastLetterIndex = index;
+                letterElements[index].classList.add('active');
+            }
+        }
+        
+        function stopDrawing(e) {
+            if (!drawing) return;
+            drawing = false;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            letterElements.forEach(l => l.classList.remove('active'));
+            checkWord(currentWord.join(''));
+            currentWord = [];
+            usedLetters = [];
+            lastLetterIndex = -1;
+        }
+        
+        async function finishGame() {
+            const userId = (TG.initDataUnsafe.user && TG.initDataUnsafe.user.id) ? TG.initDataUnsafe.user.id : 12345;
+            try {
+                const response = await fetch(`${BACKEND_URL}/game/finish/${userId}`, {
+                    method: 'POST'
+                });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+                }
+                updateStatus('Кросворд розгадано! Завантаження наступного рівня...', 'success');
+                setTimeout(() => {
+                    fetchAndGenerateGame();
+                }, 2000);
+            } catch (error) {
+                console.error("Помилка підключення до бекенду:", error);
+                updateStatus("Помилка при фіксації гри в базі даних.", "error");
+            }
+        }
+
+        function checkWord(word) {
+            let correct = false;
+            let foundIn = '';
+
+            for (const correctWord in currentCrossword.words.horizontal) {
+                if (word === correctWord) {
+                    correct = true;
+                    foundIn = 'horizontal';
+                    break;
+                }
+            }
+            
+            if (!correct) {
+                for (const correctWord in currentCrossword.words.vertical) {
+                    if (word === correctWord) {
+                        correct = true;
+                        foundIn = 'vertical';
+                        break;
+                    }
+                }
+            }
+
+            if (correct && !guessedWords.has(word)) {
+                guessedWords.add(word);
+                updateStatus(`Слово "${word}" правильне!`, 'success');
+                let slots = currentCrossword.words[foundIn][word];
+                slots.forEach(pos => {
+                    const cell = document.querySelector(`.grid-cell[data-row="${pos.r}"][data-col="${pos.c}"]`);
+                    cell.textContent = word[slots.indexOf(pos)];
+                    cell.style.backgroundColor = '#9ae6b4'; 
+                });
+
+                if (guessedWords.size === Object.keys(currentCrossword.words.horizontal).length + Object.keys(currentCrossword.words.vertical).length) {
+                    finishGame();
+                }
+
+            } else if (guessedWords.has(word)) {
+                updateStatus(`Слово "${word}" вже відгадано.`, 'info');
+            } else {
+                updateStatus(`Слово "${word}" неправильне.`, 'error');
+            }
+        }
+
+        // Функції для покупок
+        async function buyPremium() {
+            const userId = (TG.initDataUnsafe.user && TG.initDataUnsafe.user.id) ? TG.initDataUnsafe.user.id : 12345;
+            try {
+                const response = await fetch(`${BACKEND_URL}/user/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ is_premium: true })
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                await fetchUserState(userId);
+                updateStatus('Преміум-підписка активована! Тепер ви можете грати безлімітно.', 'success');
+                fetchAndGenerateGame(); // Оновити гру
+            } catch (error) {
+                console.error("Помилка при покупці преміум-підписки:", error);
+                updateStatus("Помилка при покупці преміум-підписки.", "error");
+            }
+        }
+
+        async function buyUnits(amount, price) {
+            const userId = (TG.initDataUnsafe.user && TG.initDataUnsafe.user.id) ? TG.initDataUnsafe.user.id : 12345;
+            try {
+                const response = await fetch(`${BACKEND_URL}/user/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ units: amount })
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                await fetchUserState(userId);
+                updateStatus(`Ви придбали ${amount} юнітів за ${price} грн.`, 'success');
+                closeModal('purchase-modal');
+            } catch (error) {
+                console.error("Помилка при покупці юнітів:", error);
+                updateStatus("Помилка при покупці юнітів.", "error");
+            }
+        }
+
+        // Функції для батлів
+        async function findRandomOpponent() {
+            const userId = (TG.initDataUnsafe.user && TG.initDataUnsafe.user.id) ? TG.initDataUnsafe.user.id : 12345;
+            try {
+                const response = await fetch(`${BACKEND_URL}/battle/create/${userId}`, {
+                    method: 'POST'
+                });
+                if (response.status === 403) {
+                    const errorData = await response.json();
+                    updateStatus(errorData.detail, 'error');
+                    return;
+                }
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                // Після успішного списання юнітів, чекаємо на суперника
+                showModal('battle-modal', 'Пошук суперника...', 'Чекаємо, поки хтось прийме запрошення.');
+                
+                const findResponse = await fetch(`${BACKEND_URL}/battle/find/${userId}`, {
+                    method: 'POST'
+                });
+
+                if (findResponse.status === 404) {
+                    await fetch(`${BACKEND_URL}/user/${userId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ units: 5 }) // Повертаємо 5 юнітів
+                    });
+                    closeModal('battle-modal');
+                    await fetchUserState(userId);
+                    updateStatus('На жаль, суперника не знайдено. Юніти повернено.', 'info');
+                    return;
+                }
+                
+                if (!findResponse.ok) {
+                    throw new Error(`HTTP error! status: ${findResponse.status}`);
+                }
+                
+                closeModal('battle-modal');
+                await fetchUserState(userId);
+                updateStatus('Знайдено суперника! Битва розпочата.', 'success');
+                
+            } catch (error) {
+                console.error("Помилка при створенні битви:", error);
+                updateStatus("Помилка при створенні битви.", "error");
+            }
+        }
+
+        function inviteFriend() {
+            const userId = (TG.initDataUnsafe.user && TG.initDataUnsafe.user.id) ? TG.initDataUnsafe.user.id : 12345;
+            const botUsername = '@PlaySlova_bot'; // Замініть на ім'я вашого бота
+            const inviteLink = `https://t.me/${botUsername}?start=battle_${userId}`;
+
+            if (TG.isVersionAtLeast('6.1')) {
+                TG.openTelegramLink(inviteLink);
+                updateStatus(`Надішліть це посилання другу: ${inviteLink}`, 'info');
+            } else {
+                updateStatus(`Ваш клієнт Telegram застарілий. Скопіюйте посилання вручну: ${inviteLink}`, 'info');
+            }
+        }
+
+        // Функції для модальних вікон
+        function showModal(modalId, title = '', message = '') {
+            const modal = document.getElementById(modalId);
+            if (title) document.getElementById(`${modalId}-title`).textContent = title;
+            if (message) document.getElementById(`${modalId}-message`).textContent = message;
+            modal.style.display = 'flex';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Оновлення UI
+        function updateUI(userState) {
+            document.getElementById('units-count').textContent = `Юніти: ${userState.coins}`;
+            if (userState.is_premium) {
+                document.getElementById('games-left').textContent = `Ігор: Безлімітно`;
+            } else {
+                document.getElementById('games-left').textContent = `Ігор: ${userState.games_played_today}/3`;
+            }
+        }
+
+        function updateStatus(message, type) {
+            const statusMessage = document.getElementById('status-message');
+            const statusTitle = document.getElementById('status-title');
+            statusMessage.textContent = message;
+            statusTitle.textContent = (type === 'success' ? 'Успіх!' : (type === 'error' ? 'Помилка!' : 'Статус'));
+        }
+
+        window.onload = function() {
+            letterTrayContainer = document.getElementById('letter-tray-container');
+            letterTray = document.getElementById('letter-tray');
+            canvas = document.getElementById('letter-tray-canvas');
+            ctx = canvas.getContext('2d');
+            
+            const containerRect = letterTrayContainer.getBoundingClientRect();
+            canvas.width = containerRect.width;
+            canvas.height = containerRect.height;
+            
+            const userId = (TG.initDataUnsafe.user && TG.initDataUnsafe.user.id) ? TG.initDataUnsafe.user.id : 12345;
+            fetchUserState(userId).then(userState => {
+                if (userState) {
+                    fetchAndGenerateGame();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
